@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>小鱼爱吃鱼</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: #060e1a;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  body {
+    font-family: 'ZCOOL KuaiLe', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #game-wrapper {
+    position: fixed;
+    inset: 0;
+  }
+
+  canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+    cursor: none;
+  }
+
+  /* ── Start Screen ── */
+  #start-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, #0a1628 0%, #0d2847 40%, #103a5c 100%);
+  }
+  #start-screen h1 {
+    font-size: clamp(36px, 8vw, 72px);
+    background: linear-gradient(135deg, #4dd0e1, #26c6da, #00bcd4, #80deea);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 2px 16px rgba(77, 208, 225, 0.5));
+    margin-bottom: 12px;
+    letter-spacing: 6px;
+  }
+  #start-screen .sub {
+    color: rgba(77, 208, 225, 0.18);
+    font-size: clamp(14px, 3vw, 22px);
+    margin-bottom: 48px;
+    letter-spacing: 4px;
+  }
+  #start-btn {
+    background: linear-gradient(135deg, #00bcd4, #0097a7);
+    color: #fff;
+    border: none;
+    font-family: inherit;
+    font-size: clamp(18px, 4vw, 26px);
+    padding: 14px 56px;
+    border-radius: 40px;
+    cursor: pointer;
+    letter-spacing: 4px;
+    box-shadow: 0 4px 30px rgba(0, 188, 212, 0.35);
+    transition: transform 0.15s, box-shadow 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #start-btn:hover { transform: scale(1.05); box-shadow: 0 6px 40px rgba(0,188,212,0.5); }
+  #start-btn:active { transform: scale(0.97); }
+
+  /* ── HUD ── */
+  #hud {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    justify-content: center;
+    padding: max(env(safe-area-inset-top, 8px), 10px) 16px 0;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  #info-bar {
+    display: flex;
+    gap: clamp(12px, 3vw, 28px);
+    align-items: center;
+    background: rgba(8, 22, 48, 0.78);
+    border: 1px solid rgba(77, 208, 225, 0.2);
+    border-radius: 14px;
+    padding: 8px clamp(14px, 3vw, 32px);
+    backdrop-filter: blur(10px);
+  }
+
+  .info-item {
+    display: flex; align-items: center; gap: 5px;
+    color: rgba(180, 215, 240, 0.85);
+    font-size: clamp(12px, 2.2vw, 16px);
+  }
+  .info-item .label { opacity: 0.6; font-size: clamp(10px, 1.8vw, 14px); }
+  .info-item .value {
+    color: #4dd0e1;
+    font-size: clamp(14px, 2.8vw, 20px);
+    min-width: 28px; text-align: center;
+  }
+  .info-item .value.level-val { color: #ffd54f; }
+
+  /* ── Progress ── */
+  #progress-wrap {
+    position: fixed;
+    bottom: max(env(safe-area-inset-bottom, 12px), 14px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(360px, 75vw);
+    z-index: 10;
+    pointer-events: none;
+  }
+  #progress-label {
+    text-align: center;
+    color: rgba(180, 220, 250, 0.45);
+    font-size: 11px;
+    margin-bottom: 4px;
+    letter-spacing: 1px;
+  }
+  #progress-outer {
+    height: 6px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid rgba(77, 208, 225, 0.1);
+  }
+  #progress-inner {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #00bcd4, #4dd0e1, #80deea);
+    border-radius: 6px;
+    transition: width 0.3s ease;
+    box-shadow: 0 0 8px rgba(77, 208, 225, 0.35);
+  }
+
+  /* ── Sound toggle ── */
+  #sound-btn {
+    position: fixed;
+    top: max(env(safe-area-inset-top, 8px), 10px);
+    right: 16px;
+    z-index: 20;
+    background: rgba(8, 22, 48, 0.7);
+    border: 1px solid rgba(77, 208, 225, 0.2);
+    color: #4dd0e1;
+    font-size: 22px;
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(6px);
+    -webkit-tap-highlight-color: transparent;
+    pointer-events: auto;
+  }
+  #sound-btn.muted { opacity: 0.4; }
+
+  /* ── Mobile joystick ── */
+  #joystick-zone {
+    display: none;
+    position: fixed;
+    bottom: 50px;
+    left: 30px;
+    z-index: 15;
+  }
+  #joystick-base {
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    background: rgba(77, 208, 225, 0.07);
+    border: 2px solid rgba(77, 208, 225, 0.16);
+    position: relative;
+  }
+  #joystick-knob {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: rgba(77, 208, 225, 0.22);
+    border: 2px solid rgba(77, 208, 225, 0.35);
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  /* ── Mobile buttons ── */
+  #mobile-btns {
+    display: none;
+    position: fixed;
+    bottom: 75px;
+    right: 25px;
+    z-index: 15;
+    gap: 12px;
+    flex-direction: column;
+    align-items: center;
+  }
+  .mob-btn {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: rgba(77, 208, 225, 0.1);
+    border: 2px solid rgba(77, 208, 225, 0.2);
+    color: rgba(77, 208, 225, 0.55);
+    font-size: 13px;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .hint-bottom {
+    position: fixed;
+    bottom: max(calc(env(safe-area-inset-bottom, 12px) + 22px), 36px);
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(140, 190, 220, 0.3);
+    font-size: 11px;
+    letter-spacing: 1px;
+    z-index: 10;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 768px), (pointer: coarse) {
+    #joystick-zone { display: block; }
+    #mobile-btns { display: flex; }
+    .hint-bottom { display: none; }
+    #progress-wrap { bottom: 10px; width: min(180px, 45vw); }
+  }
+</style>
+</head>
+<body>
+
+<div id="start-screen">
+  <h1>小鱼爱吃鱼</h1>
+  <div class="sub">昱驰之海</div>
+  <button id="start-btn">开始游戏</button>
+</div>
+
+<div id="game-wrapper"><canvas id="game-canvas"></canvas></div>
+
+<div id="hud" style="display:none">
+  <div id="info-bar">
+    <div class="info-item"><span class="label">关卡</span><span class="value level-val" id="level-display">1</span></div>
+    <div class="info-item"><span class="label">分数</span><span class="value" id="score-display">0</span></div>
+    <div class="info-item"><span class="label">目标</span><span class="value" id="target-display">100</span></div>
+    <div class="info-item"><span class="label">体型</span><span class="value" id="rank-display">小鱼</span></div>
+  </div>
+</div>
+
+<button id="sound-btn">🔊</button>
+
+<div id="progress-wrap" style="display:none">
+  <div id="progress-label">关卡进度</div>
+  <div id="progress-outer"><div id="progress-inner"></div></div>
+</div>
+
+<div class="hint-bottom" id="hint-text" style="display:none">方向键 / WASD 移动 ｜ 空格暂停</div>
+
+<div id="joystick-zone"><div id="joystick-base"><div id="joystick-knob"></div></div></div>
+<div id="mobile-btns"><button class="mob-btn" id="btn-pause">暂停</button></div>
+
+<script>
+(() => {
+  // ════════════════════════════════════
+  //  AUDIO
+  // ════════════════════════════════════
+  let audioCtx = null, masterGain = null, musicPlaying = false, muted = false;
+  const soundBtn = document.getElementById('sound-btn');
+
+  function initAudio() {
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.32;
+    masterGain.connect(audioCtx.destination);
+  }
+
+  function startMusic() {
+    if (musicPlaying) return;
+    initAudio();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    musicPlaying = true;
+
+    // Pad drone
+    [130.81, 164.81, 196.00, 246.94].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator(); osc.type = 'sine'; osc.frequency.value = freq;
+      const osc2 = audioCtx.createOscillator(); osc2.type = 'sine'; osc2.frequency.value = freq * 1.003;
+      const gain = audioCtx.createGain(); gain.gain.value = 0.04;
+      const lfo = audioCtx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 0.15 + i * 0.07;
+      const lfoG = audioCtx.createGain(); lfoG.gain.value = 0.012;
+      lfo.connect(lfoG); lfoG.connect(gain.gain);
+      osc.connect(gain); osc2.connect(gain); gain.connect(masterGain);
+      lfo.start(); osc.start(); osc2.start();
+    });
+
+    // Bubble blips
+    (function bub() {
+      if (!musicPlaying) return;
+      const now = audioCtx.currentTime;
+      const o = audioCtx.createOscillator(); o.type = 'sine';
+      const bf = 600 + Math.random() * 1200;
+      o.frequency.setValueAtTime(bf, now);
+      o.frequency.exponentialRampToValueAtTime(bf * 1.4, now + 0.08);
+      o.frequency.exponentialRampToValueAtTime(bf * 0.5, now + 0.25);
+      const g = audioCtx.createGain();
+      g.gain.setValueAtTime(0, now);
+      g.gain.linearRampToValueAtTime(0.025 + Math.random() * 0.015, now + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      o.connect(g); g.connect(masterGain); o.start(now); o.stop(now + 0.35);
+      setTimeout(bub, 900 + Math.random() * 2500);
+    })();
+
+    // Melody
+    const notes = [523.25, 587.33, 659.25, 783.99, 880, 783.99, 659.25, 587.33];
+    let mi = 0;
+    (function mel() {
+      if (!musicPlaying) return;
+      const now = audioCtx.currentTime;
+      const o = audioCtx.createOscillator(); o.type = 'triangle'; o.frequency.value = notes[mi++ % notes.length];
+      const g = audioCtx.createGain();
+      g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.03, now + 0.15);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
+      o.connect(g); g.connect(masterGain); o.start(now); o.stop(now + 2);
+      setTimeout(mel, 1600 + Math.random() * 1200);
+    })();
+
+    // Low wave
+    const wo = audioCtx.createOscillator(); wo.type = 'sine'; wo.frequency.value = 55;
+    const wg = audioCtx.createGain(); wg.gain.value = 0.05;
+    const wl = audioCtx.createOscillator(); wl.type = 'sine'; wl.frequency.value = 0.08;
+    const wlg = audioCtx.createGain(); wlg.gain.value = 0.035;
+    wl.connect(wlg); wlg.connect(wg.gain); wo.connect(wg); wg.connect(masterGain);
+    wo.start(); wl.start();
+  }
+
+  function playEatSound(sz) {
+    if (!audioCtx || muted) return;
+    const now = audioCtx.currentTime, f = 400 + 300 / (sz * 0.02 + 0.5);
+    const o = audioCtx.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(f, now); o.frequency.exponentialRampToValueAtTime(f*1.8, now+0.06);
+    o.frequency.exponentialRampToValueAtTime(f*0.5, now+0.2);
+    const g = audioCtx.createGain(); g.gain.setValueAtTime(0.1, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now+0.3);
+    o.connect(g); g.connect(masterGain); o.start(now); o.stop(now+0.35);
+  }
+
+  function playLevelUp() {
+    if (!audioCtx || muted) return;
+    const now = audioCtx.currentTime;
+    [523,659,784,1047].forEach((f,i) => {
+      const o = audioCtx.createOscillator(); o.type = 'triangle'; o.frequency.value = f;
+      const g = audioCtx.createGain();
+      g.gain.setValueAtTime(0, now+i*0.12); g.gain.linearRampToValueAtTime(0.09, now+i*0.12+0.05);
+      g.gain.exponentialRampToValueAtTime(0.001, now+i*0.12+0.6);
+      o.connect(g); g.connect(masterGain); o.start(now+i*0.12); o.stop(now+i*0.12+0.7);
+    });
+  }
+
+  function playDeathSound() {
+    if (!audioCtx || muted) return;
+    const now = audioCtx.currentTime;
+    const o = audioCtx.createOscillator(); o.type = 'sawtooth';
+    o.frequency.setValueAtTime(300, now); o.frequency.exponentialRampToValueAtTime(60, now+0.8);
+    const g = audioCtx.createGain(); g.gain.setValueAtTime(0.08, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now+0.9);
+    o.connect(g); g.connect(masterGain); o.start(now); o.stop(now+1);
+  }
+
+  soundBtn.addEventListener('click', () => {
+    muted = !muted;
+    soundBtn.textContent = muted ? '🔇' : '🔊';
+    soundBtn.classList.toggle('muted', muted);
+    if (masterGain) masterGain.gain.value = muted ? 0 : 0.32;
+  });
+
+  // ════════════════════════════════════
+  //  GAME
+  // ════════════════════════════════════
+  const canvas = document.getElementById('game-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H;
+  function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+  resize(); window.addEventListener('resize', resize);
+
+  const scoreEl = document.getElementById('score-display');
+  const rankEl = document.getElementById('rank-display');
+  const levelEl = document.getElementById('level-display');
+  const targetEl = document.getElementById('target-display');
+  const progressInner = document.getElementById('progress-inner');
+
+  const levels = [
+    {target:100},{target:200},{target:350},{target:500},
+    {target:700},{target:900},{target:1150},{target:1500},
+  ];
+
+  let currentLevel=0, levelScore=0, totalScore=0;
+  let paused=false, gameOver=false, gameWon=false, gameStarted=false;
+  let fishes=[], bubbles=[], particles=[], shockwaves=[];
+  let lastTime=0, shakeAmount=0, shakeDuration=0, levelTransition=0, nextLevelDisplay=0;
+  const keys = {up:false,down:false,left:false,right:false};
+  let joystickActive=false, joystickDx=0, joystickDy=0;
+
+  const ranks = [
+    {name:'小鱼',min:0},{name:'中鱼',min:22},{name:'大鱼',min:36},{name:'巨鱼',min:50},
+    {name:'鲨鱼',min:65},{name:'巨鲨',min:80},{name:'鲸鱼',min:100},{name:'海王',min:130},
+  ];
+  function getRank(s){let r=ranks[0];for(const k of ranks){if(s>=k.min)r=k;}return r.name;}
+
+  const player = {x:0,y:0,size:16,speed:3.6,dir:1,tailPhase:0};
+  function resetPlayer(){player.x=W/2;player.y=H/2;}
+
+  const fishColors = [
+    '#e57373','#f06292','#ba68c8','#9575cd','#7986cb','#64b5f6','#4fc3f7','#4dd0e1',
+    '#4db6ac','#81c784','#aed581','#dce775','#fff176','#ffd54f','#ffb74d','#ff8a65',
+    '#a1887f','#e0e0e0','#80cbc4','#b39ddb',
+  ];
+
+  function spawnFish(){
+    const r=Math.random();let size;const lvl=currentLevel;
+    if(r<0.4)size=player.size*(0.25+Math.random()*0.55);
+    else if(r<0.78)size=player.size*(0.8+Math.random()*0.4);
+    else size=player.size*(1.15+Math.random()*(0.8+lvl*0.1));
+    size=Math.max(6,Math.min(size,90));
+    const fl=Math.random()<0.5,dir=fl?1:-1;
+    const x=fl?-size*3:W+size*3,y=30+Math.random()*(H-60);
+    const speed=(0.7+Math.random()*1.6)*(1+lvl*0.06);
+    const color=fishColors[Math.floor(Math.random()*fishColors.length)];
+    fishes.push({x,y,size,speed,dir,color,tailPhase:Math.random()*Math.PI*2});
+  }
+
+  function spawnEatParticles(x,y,color,count){
+    for(let i=0;i<count;i++){
+      const a=Math.random()*Math.PI*2,sp=1.5+Math.random()*4;
+      particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,decay:0.015+Math.random()*0.025,size:2+Math.random()*4,color});
+    }
+  }
+  function spawnShockwave(x,y){shockwaves.push({x,y,radius:0,maxRadius:60+player.size*1.5,alpha:0.6,speed:4});}
+  function triggerShake(a,d){shakeAmount=a;shakeDuration=d;}
+
+  function shadeColor(hex,amt){
+    let r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+    return`rgb(${Math.min(255,Math.max(0,r+amt))},${Math.min(255,Math.max(0,g+amt))},${Math.min(255,Math.max(0,b+amt))})`;
+  }
+
+  function drawFish(f,isP){
+    const s=f.size,bW=s*1.6,bH=s,d=f.dir;
+    ctx.save();ctx.translate(f.x,f.y);
+    f.tailPhase+=0.12;const tw=Math.sin(f.tailPhase)*0.25;
+    const bc=isP?'#66bb6a':f.color,dk=isP?'#2e7d32':shadeColor(f.color,-35),lt=isP?'#a5d6a7':shadeColor(f.color,45);
+
+    if(isP){ctx.save();ctx.globalAlpha=0.12;ctx.shadowColor='#66bb6a';ctx.shadowBlur=30+s*0.5;
+      ctx.beginPath();ctx.ellipse(0,0,bW*0.6,bH*0.6,0,0,Math.PI*2);ctx.fillStyle='#66bb6a';ctx.fill();ctx.restore();}
+
+    const tX=-d*(bW*0.8),tS=s*0.7;
+    ctx.beginPath();ctx.moveTo(tX,0);
+    ctx.quadraticCurveTo(tX-d*tS*0.6,-tS+tw*s,tX-d*tS*0.3,-tS*0.6+tw*s);
+    ctx.quadraticCurveTo(tX,0,tX,0);
+    ctx.quadraticCurveTo(tX-d*tS*0.6,tS+tw*s,tX-d*tS*0.3,tS*0.6+tw*s);
+    ctx.quadraticCurveTo(tX,0,tX,0);ctx.fillStyle=dk;ctx.fill();
+
+    ctx.beginPath();ctx.ellipse(0,0,bW*0.55,bH*0.55,0,0,Math.PI*2);
+    const grd=ctx.createRadialGradient(d*s*0.15,-s*0.1,s*0.1,0,0,bW*0.55);
+    grd.addColorStop(0,lt);grd.addColorStop(0.6,bc);grd.addColorStop(1,dk);ctx.fillStyle=grd;ctx.fill();
+
+    ctx.beginPath();ctx.moveTo(d*s*0.1,-bH*0.5);ctx.quadraticCurveTo(-d*s*0.15,-bH*0.9,-d*s*0.5,-bH*0.45);ctx.fillStyle=dk;ctx.fill();
+
+    const eX=d*bW*0.25,eY=-bH*0.12,eR=s*0.14;
+    ctx.beginPath();ctx.arc(eX,eY,eR,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
+    ctx.beginPath();ctx.arc(eX+d*eR*0.25,eY,eR*0.55,0,Math.PI*2);ctx.fillStyle='#222';ctx.fill();
+    ctx.beginPath();ctx.arc(eX+d*eR*0.05,eY-eR*0.25,eR*0.2,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,0.8)';ctx.fill();
+
+    ctx.beginPath();ctx.arc(d*bW*0.48,bH*0.08,s*0.07,0,Math.PI);ctx.strokeStyle=dk;ctx.lineWidth=1.2;ctx.stroke();
+    ctx.restore();
+  }
+
+  function spawnBubble(){bubbles.push({x:20+Math.random()*(W-40),y:H+5,r:1.5+Math.random()*3.5,speed:0.3+Math.random()*0.7,alpha:0.12+Math.random()*0.18,wobble:Math.random()*Math.PI*2});}
+
+  function drawSeaweed(){
+    const cnt=Math.max(3,Math.floor(W/120)),time=Date.now()*0.001;
+    for(let i=0;i<cnt;i++){
+      const bx=50+i*((W-100)/cnt);ctx.save();ctx.translate(bx,H);
+      const h=35+(i%4)*16,seg=6;
+      ctx.beginPath();ctx.moveTo(0,0);
+      for(let s=1;s<=seg;s++){const t=s/seg,sw=Math.sin(time*1.1+i*0.7+t*2)*9*t;ctx.quadraticCurveTo(sw-3,-h*t+4,sw,-h*t);}
+      for(let s=seg;s>=0;s--){const t=s/seg,sw=Math.sin(time*1.1+i*0.7+t*2)*9*t;ctx.quadraticCurveTo(sw+5,-h*t-4,sw+3,-h*t);}
+      ctx.closePath();const g=ctx.createLinearGradient(0,0,0,-h);g.addColorStop(0,'rgba(46,125,50,0.45)');g.addColorStop(1,'rgba(76,175,80,0.2)');ctx.fillStyle=g;ctx.fill();ctx.restore();
+    }
+  }
+
+  function drawBg(){
+    const cl=currentLevel,r1=Math.max(0,13-cl),g1=Math.max(0,40-cl*2),b1=Math.max(0,71-cl*3);
+    const grd=ctx.createLinearGradient(0,0,0,H);
+    grd.addColorStop(0,`rgb(${r1},${g1},${b1})`);
+    grd.addColorStop(0.5,`rgb(${Math.max(0,16-cl)},${Math.max(0,58-cl*3)},${Math.max(0,92-cl*4)})`);
+    grd.addColorStop(1,`rgb(${Math.max(0,11-cl)},${Math.max(0,30-cl*2)},${Math.max(0,56-cl*3)})`);
+    ctx.fillStyle=grd;ctx.fillRect(0,0,W,H);
+
+    ctx.save();ctx.globalAlpha=0.03;
+    const rc=Math.max(3,Math.floor(W/160));
+    for(let i=0;i<rc;i++){const x=60+i*(W/rc);ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x+70,H);ctx.lineTo(x-40,H);ctx.closePath();ctx.fillStyle='#4dd0e1';ctx.fill();}
+    ctx.restore();
+
+    ctx.save();const wm=Math.min(W,H)*0.18;
+    ctx.font=`${wm}px "ZCOOL KuaiLe",sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle='rgba(77,208,225,0.035)';ctx.fillText('昱驰之海',W/2,H/2);
+    ctx.font=`${wm*0.32}px "ZCOOL KuaiLe",sans-serif`;ctx.fillStyle='rgba(77,208,225,0.02)';
+    ctx.fillText('昱驰之海',W*0.2,H*0.28);ctx.fillText('昱驰之海',W*0.8,H*0.72);
+    ctx.fillText('昱驰之海',W*0.15,H*0.75);ctx.fillText('昱驰之海',W*0.85,H*0.25);
+    ctx.restore();
+
+    ctx.save();const sg=ctx.createLinearGradient(0,H-35,0,H);sg.addColorStop(0,'rgba(194,178,128,0)');sg.addColorStop(1,'rgba(194,178,128,0.12)');ctx.fillStyle=sg;ctx.fillRect(0,H-35,W,35);ctx.restore();
+    drawSeaweed();
+  }
+
+  function collides(a,b){const dx=a.x-b.x,dy=a.y-b.y;return Math.sqrt(dx*dx+dy*dy)<(a.size+b.size)*0.62;}
+
+  let spawnTimer=0;
+  function getSpawnInterval(){return Math.max(300,900-currentLevel*60-levelScore*0.5);}
+
+  function startLevel(idx){
+    currentLevel=idx;levelScore=0;fishes=[];particles=[];shockwaves=[];
+    player.size=16+idx*2;player.speed=Math.max(2.2,3.6-idx*0.08);
+    resetPlayer();for(let i=0;i<10+idx*2;i++)spawnFish();for(let i=0;i<15;i++)spawnBubble();updateHUD();
+  }
+
+  function updateHUD(){
+    const lv=levels[currentLevel];scoreEl.textContent=levelScore;levelEl.textContent=currentLevel+1;
+    targetEl.textContent=lv.target;rankEl.textContent=getRank(player.size);
+    progressInner.style.width=Math.min(100,(levelScore/lv.target)*100)+'%';
+  }
+
+  function update(dt){
+    if(!gameStarted||paused||gameOver||gameWon)return;
+    if(levelTransition>0){levelTransition-=dt;if(levelTransition<=0){levelTransition=0;startLevel(nextLevelDisplay);}return;}
+
+    const sp=player.speed;let mx=0,my=0;
+    if(keys.up)my-=1;if(keys.down)my+=1;if(keys.left)mx-=1;if(keys.right)mx+=1;
+    if(joystickActive){mx+=joystickDx;my+=joystickDy;}
+    const mag=Math.sqrt(mx*mx+my*my);
+    if(mag>0){const nm=Math.min(mag,1);player.x+=(mx/mag)*nm*sp;player.y+=(my/mag)*nm*sp;if(mx!==0)player.dir=mx>0?1:-1;}
+
+    const margin=player.size*1.2;
+    player.x=Math.max(margin,Math.min(W-margin,player.x));
+    player.y=Math.max(margin,Math.min(H-margin,player.y));
+
+    spawnTimer+=dt;if(spawnTimer>getSpawnInterval()){spawnTimer=0;const c=1+(currentLevel>2?1:0)+(currentLevel>5?1:0);for(let i=0;i<c;i++)spawnFish();}
+
+    for(let i=fishes.length-1;i>=0;i--){
+      const f=fishes[i];f.x+=f.speed*f.dir;
+      if((f.dir===1&&f.x>W+f.size*4)||(f.dir===-1&&f.x<-f.size*4)){fishes.splice(i,1);continue;}
+      if(collides(player,f)){
+        if(f.size<player.size*0.95){
+          const pts=Math.max(1,Math.round(f.size*0.6));levelScore+=pts;totalScore+=pts;
+          player.size+=f.size*0.035;player.speed=Math.max(2.0,3.6-player.size*0.01);
+          spawnEatParticles(f.x,f.y,f.color,12+Math.floor(f.size*0.5));spawnShockwave(f.x,f.y);
+          triggerShake(3+f.size*0.08,150);playEatSound(f.size);fishes.splice(i,1);
+          if(levelScore>=levels[currentLevel].target){
+            if(currentLevel<levels.length-1){nextLevelDisplay=currentLevel+1;levelTransition=2500;playLevelUp();}
+            else{gameWon=true;playLevelUp();}
+          }
+        }else{gameOver=true;playDeathSound();}
+      }
+    }
+
+    for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx;p.y+=p.vy;p.vx*=0.96;p.vy*=0.96;p.life-=p.decay;if(p.life<=0)particles.splice(i,1);}
+    for(let i=shockwaves.length-1;i>=0;i--){const s=shockwaves[i];s.radius+=s.speed;s.alpha*=0.94;if(s.radius>s.maxRadius||s.alpha<0.01)shockwaves.splice(i,1);}
+    if(shakeDuration>0){shakeDuration-=dt;if(shakeDuration<0)shakeDuration=0;}
+    if(Math.random()<0.04)spawnBubble();
+    for(let i=bubbles.length-1;i>=0;i--){const b=bubbles[i];b.y-=b.speed;b.wobble+=0.02;b.x+=Math.sin(b.wobble)*0.3;if(b.y<-10)bubbles.splice(i,1);}
+    updateHUD();
+  }
+
+  function isMobile(){return 'ontouchstart' in window || navigator.maxTouchPoints>0;}
+
+  function draw(){
+    ctx.save();
+    if(shakeDuration>0){const i=shakeAmount*(shakeDuration/200);ctx.translate((Math.random()-0.5)*i*2,(Math.random()-0.5)*i*2);}
+    drawBg();
+
+    bubbles.forEach(b=>{ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.strokeStyle=`rgba(150,220,255,${b.alpha})`;ctx.lineWidth=0.8;ctx.stroke();});
+    shockwaves.forEach(s=>{ctx.beginPath();ctx.arc(s.x,s.y,s.radius,0,Math.PI*2);ctx.strokeStyle=`rgba(77,208,225,${s.alpha})`;ctx.lineWidth=2;ctx.stroke();});
+    fishes.forEach(f=>drawFish(f,false));
+    particles.forEach(p=>{ctx.globalAlpha=p.life;ctx.beginPath();ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill();ctx.globalAlpha=1;});
+    drawFish(player,true);
+
+    if(levelTransition>0){
+      const t=levelTransition/2500;
+      ctx.fillStyle=`rgba(0,0,0,${0.6*(1-Math.abs(t-0.5)*2)})`;ctx.fillRect(0,0,W,H);
+      if(t<0.7){ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillStyle='#ffd54f';ctx.font=`${Math.min(56,W*0.06)}px "ZCOOL KuaiLe",sans-serif`;
+        ctx.fillText(`第 ${nextLevelDisplay+1} 关`,W/2,H/2-30);
+        ctx.fillStyle='rgba(200,230,255,0.7)';ctx.font=`${Math.min(24,W*0.03)}px "ZCOOL KuaiLe",sans-serif`;
+        ctx.fillText(`目标分数：${levels[nextLevelDisplay].target}`,W/2,H/2+20);
+      }
+    }
+
+    if(paused&&!gameOver&&!gameWon){
+      ctx.fillStyle='rgba(0,0,0,0.55)';ctx.fillRect(0,0,W,H);ctx.textAlign='center';
+      ctx.fillStyle='rgba(200,230,255,0.9)';ctx.font=`${Math.min(42,W*0.06)}px "ZCOOL KuaiLe",sans-serif`;
+      ctx.fillText('已暂停',W/2,H/2-16);
+      ctx.font=`${Math.min(20,W*0.03)}px "ZCOOL KuaiLe",sans-serif`;ctx.fillStyle='rgba(180,210,240,0.6)';
+      ctx.fillText(isMobile()?'点击暂停按钮继续':'按空格键继续',W/2,H/2+24);
+    }
+
+    const rTxt=isMobile()?'点击屏幕重新开始':'按 R 重新开始';
+    if(gameOver){
+      ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,W,H);ctx.textAlign='center';
+      ctx.fillStyle='#ef5350';ctx.font=`${Math.min(52,W*0.07)}px "ZCOOL KuaiLe",sans-serif`;
+      ctx.fillText('游戏结束',W/2,H/2-60);
+      ctx.fillStyle='rgba(220,240,255,0.9)';ctx.font=`${Math.min(24,W*0.03)}px "ZCOOL KuaiLe",sans-serif`;
+      ctx.fillText(`最终关卡：第 ${currentLevel+1} 关`,W/2,H/2-10);
+      ctx.fillText(`总分：${totalScore}`,W/2,H/2+26);ctx.fillText(`最终体型：${getRank(player.size)}`,W/2,H/2+58);
+      ctx.font=`${Math.min(18,W*0.025)}px "ZCOOL KuaiLe",sans-serif`;ctx.fillStyle='rgba(180,210,240,0.5)';
+      ctx.fillText(rTxt,W/2,H/2+105);
+    }
+
+    if(gameWon){
+      ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,W,H);ctx.textAlign='center';
+      ctx.fillStyle='#ffd54f';ctx.font=`${Math.min(52,W*0.07)}px "ZCOOL KuaiLe",sans-serif`;
+      ctx.fillText('通关成功！',W/2,H/2-60);
+      ctx.fillStyle='rgba(220,240,255,0.9)';ctx.font=`${Math.min(26,W*0.035)}px "ZCOOL KuaiLe",sans-serif`;
+      ctx.fillText('你已征服昱驰之海！',W/2,H/2-5);ctx.fillText(`总分：${totalScore}`,W/2,H/2+35);
+      ctx.fillText(`最终体型：${getRank(player.size)}`,W/2,H/2+68);
+      ctx.font=`${Math.min(18,W*0.025)}px "ZCOOL KuaiLe",sans-serif`;ctx.fillStyle='rgba(180,210,240,0.5)';
+      ctx.fillText(rTxt,W/2,H/2+115);
+    }
+
+    ctx.restore();
+  }
+
+  function loop(ts){const dt=ts-lastTime;lastTime=ts;update(dt);draw();requestAnimationFrame(loop);}
+  function restartGame(){gameOver=false;gameWon=false;totalScore=0;player.size=16;player.speed=3.6;startLevel(0);}
+
+  // ════════════════════════════════════
+  //  KEYBOARD
+  // ════════════════════════════════════
+  document.addEventListener('keydown',e=>{
+    if(e.code==='KeyR'&&(gameOver||gameWon)){restartGame();return;}
+    if(e.code==='Space'){e.preventDefault();if(!gameOver&&!gameWon)paused=!paused;return;}
+    if(paused||gameOver||gameWon)return;
+    if(e.code==='ArrowUp'||e.code==='KeyW')keys.up=true;
+    if(e.code==='ArrowDown'||e.code==='KeyS')keys.down=true;
+    if(e.code==='ArrowLeft'||e.code==='KeyA')keys.left=true;
+    if(e.code==='ArrowRight'||e.code==='KeyD')keys.right=true;
+  });
+  document.addEventListener('keyup',e=>{
+    if(e.code==='ArrowUp'||e.code==='KeyW')keys.up=false;
+    if(e.code==='ArrowDown'||e.code==='KeyS')keys.down=false;
+    if(e.code==='ArrowLeft'||e.code==='KeyA')keys.left=false;
+    if(e.code==='ArrowRight'||e.code==='KeyD')keys.right=false;
+  });
+
+  // ════════════════════════════════════
+  //  MOBILE JOYSTICK
+  // ════════════════════════════════════
+  const jsBase=document.getElementById('joystick-base'),jsKnob=document.getElementById('joystick-knob');
+  const bR=60,kR=24;let jsTouchId=null;
+
+  function updateJoystick(touch){
+    const rect=jsBase.getBoundingClientRect(),cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+    let dx=touch.clientX-cx,dy=touch.clientY-cy;
+    const dist=Math.sqrt(dx*dx+dy*dy),max=bR-kR*0.5;
+    if(dist>max){dx=(dx/dist)*max;dy=(dy/dist)*max;}
+    jsKnob.style.transform=`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+    if(dist>8){joystickActive=true;joystickDx=dx/max;joystickDy=dy/max;}
+    else{joystickActive=false;joystickDx=0;joystickDy=0;}
+  }
+
+  jsBase.addEventListener('touchstart',e=>{e.preventDefault();jsTouchId=e.changedTouches[0].identifier;updateJoystick(e.changedTouches[0]);},{passive:false});
+  jsBase.addEventListener('touchmove',e=>{e.preventDefault();for(const t of e.changedTouches){if(t.identifier===jsTouchId){updateJoystick(t);break;}}},{passive:false});
+  function jsEnd(e){for(const t of e.changedTouches){if(t.identifier===jsTouchId){jsTouchId=null;joystickActive=false;joystickDx=0;joystickDy=0;jsKnob.style.transform='translate(-50%,-50%)';break;}}}
+  jsBase.addEventListener('touchend',jsEnd);jsBase.addEventListener('touchcancel',jsEnd);
+
+  document.getElementById('btn-pause').addEventListener('click',()=>{if(!gameOver&&!gameWon)paused=!paused;});
+
+  canvas.addEventListener('touchstart',e=>{if((gameOver||gameWon)&&gameStarted){e.preventDefault();restartGame();}},{passive:false});
+
+  // ════════════════════════════════════
+  //  START
+  // ════════════════════════════════════
+  document.getElementById('start-btn').addEventListener('click',()=>{
+    document.getElementById('start-screen').style.display='none';
+    document.getElementById('hud').style.display='flex';
+    soundBtn.style.display='flex';
+    document.getElementById('progress-wrap').style.display='block';
+    document.getElementById('hint-text').style.display='block';
+    gameStarted=true;initAudio();startMusic();resetPlayer();startLevel(0);requestAnimationFrame(loop);
+  });
+
+  // Ambient pre-render
+  requestAnimationFrame(function pre(ts){
+    if(gameStarted)return;lastTime=ts;drawBg();
+    bubbles.forEach(b=>{ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.strokeStyle=`rgba(150,220,255,${b.alpha})`;ctx.lineWidth=0.8;ctx.stroke();});
+    if(Math.random()<0.03)spawnBubble();
+    for(let i=bubbles.length-1;i>=0;i--){const b=bubbles[i];b.y-=b.speed;b.wobble+=0.02;b.x+=Math.sin(b.wobble)*0.3;if(b.y<-10)bubbles.splice(i,1);}
+    requestAnimationFrame(pre);
+  });
+})();
+</script>
+</body>
+</html>
