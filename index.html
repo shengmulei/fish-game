@@ -177,9 +177,9 @@
   #joystick-zone {
     display: none;
     position: fixed;
-    bottom: 50px;
-    right: 30px;
     z-index: 15;
+    bottom: 165px;
+    right: 30px;
   }
   #joystick-base {
     width: 120px; height: 120px;
@@ -202,12 +202,12 @@
   #mobile-btns {
     display: none;
     position: fixed;
-    bottom: 75px;
-    left: 25px;
     z-index: 15;
     gap: 12px;
     flex-direction: column;
     align-items: center;
+    bottom: 55px;
+    left: 25px;
   }
   .mob-btn {
     width: 52px; height: 52px;
@@ -222,6 +222,27 @@
     justify-content: center;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ── Orientation toggle button ── */
+  #orient-btn {
+    position: fixed;
+    top: max(env(safe-area-inset-top, 8px), 10px);
+    left: 16px;
+    z-index: 20;
+    background: rgba(8, 22, 48, 0.7);
+    border: 1px solid rgba(77, 208, 225, 0.2);
+    color: #4dd0e1;
+    font-size: 18px;
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(6px);
+    -webkit-tap-highlight-color: transparent;
+    pointer-events: auto;
   }
 
   .hint-bottom {
@@ -240,6 +261,7 @@
   @media (max-width: 768px), (pointer: coarse) {
     #joystick-zone { display: block; }
     #mobile-btns { display: flex; }
+    #orient-btn { display: flex; }
     .hint-bottom { display: none; }
     #progress-wrap { bottom: 10px; width: min(180px, 45vw); }
   }
@@ -265,6 +287,7 @@
 </div>
 
 <button id="sound-btn">🔊</button>
+<button id="orient-btn">📱</button>
 
 <div id="progress-wrap" style="display:none">
   <div id="progress-label">关卡进度</div>
@@ -388,6 +411,20 @@
     soundBtn.textContent = muted ? '🔇' : '🔊';
     soundBtn.classList.toggle('muted', muted);
     if (masterGain) masterGain.gain.value = muted ? 0 : 0.32;
+  });
+
+  // ════════════════════════════════════
+  //  ORIENTATION SYSTEM
+  // ════════════════════════════════════
+  const orientBtn = document.getElementById('orient-btn');
+  let isLandscape = true;
+
+  orientBtn.addEventListener('click', () => {
+    isLandscape = !isLandscape;
+    orientBtn.textContent = isLandscape ? '🖥️' : '📱';
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock(isLandscape ? 'landscape' : 'portrait').catch(() => {});
+    }
   });
 
   // ════════════════════════════════════
@@ -699,6 +736,7 @@
     document.getElementById('start-screen').style.display='none';
     document.getElementById('hud').style.display='flex';
     soundBtn.style.display='flex';
+    orientBtn.style.display='flex';
     document.getElementById('progress-wrap').style.display='block';
     document.getElementById('hint-text').style.display='block';
     gameStarted=true;initAudio();startMusic();resetPlayer();startLevel(0);requestAnimationFrame(loop);
