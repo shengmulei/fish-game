@@ -12,6 +12,7 @@
   html, body {
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
     background: #060e1a;
     touch-action: none;
@@ -36,6 +37,7 @@
     display: block;
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
     cursor: none;
   }
 
@@ -178,6 +180,7 @@
     display: none;
     position: fixed;
     z-index: 15;
+    /* Portrait default: right side, above center */
     bottom: 165px;
     right: 30px;
   }
@@ -198,7 +201,7 @@
     transform: translate(-50%, -50%);
   }
 
-  /* ── Mobile buttons ── */
+  /* ── Mobile buttons (pause) ── */
   #mobile-btns {
     display: none;
     position: fixed;
@@ -206,6 +209,7 @@
     gap: 12px;
     flex-direction: column;
     align-items: center;
+    /* Portrait default */
     bottom: 55px;
     left: 25px;
   }
@@ -258,12 +262,41 @@
     white-space: nowrap;
   }
 
+  /* ── Mobile: show controls ── */
   @media (max-width: 768px), (pointer: coarse) {
     #joystick-zone { display: block; }
     #mobile-btns { display: flex; }
     #orient-btn { display: flex; }
     .hint-bottom { display: none; }
     #progress-wrap { bottom: 10px; width: min(180px, 45vw); }
+  }
+
+  /* ── Landscape on mobile: joystick lower-right, pause lower-left ── */
+  @media (orientation: landscape) and (max-height: 500px),
+         (orientation: landscape) and (pointer: coarse) {
+    #joystick-zone {
+      bottom: 20px;
+      right: max(env(safe-area-inset-right, 20px), 25px);
+    }
+    #mobile-btns {
+      bottom: 25px;
+      left: max(env(safe-area-inset-left, 20px), 25px);
+    }
+    #orient-btn {
+      left: max(env(safe-area-inset-left, 12px), 16px);
+    }
+  }
+
+  /* ── Portrait on mobile: joystick right & higher, pause left-bottom ── */
+  @media (orientation: portrait) and (pointer: coarse) {
+    #joystick-zone {
+      bottom: 165px;
+      right: 25px;
+    }
+    #mobile-btns {
+      bottom: 55px;
+      left: 25px;
+    }
   }
 </style>
 </head>
@@ -433,8 +466,15 @@
   const canvas = document.getElementById('game-canvas');
   const ctx = canvas.getContext('2d');
   let W, H;
-  function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
-  resize(); window.addEventListener('resize', resize);
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+    // Force repaint on iOS to fill address-bar space
+    document.body.style.height = window.innerHeight + 'px';
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  window.addEventListener('orientationchange', () => { setTimeout(resize, 150); });
 
   const scoreEl = document.getElementById('score-display');
   const rankEl = document.getElementById('rank-display');
