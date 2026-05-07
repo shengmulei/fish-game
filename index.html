@@ -276,7 +276,7 @@
          (orientation: landscape) and (pointer: coarse) {
     #joystick-zone {
       bottom: 20px;
-      right: max(env(safe-area-inset-right, 20px), 25px);
+      right: calc(max(env(safe-area-inset-right, 20px), 25px) + 120px);
     }
     #mobile-btns {
       bottom: 25px;
@@ -465,12 +465,18 @@
   // ════════════════════════════════════
   const canvas = document.getElementById('game-canvas');
   const ctx = canvas.getContext('2d');
-  let W, H;
+  let W, H, dpr;
   function resize() {
-    W = canvas.width = window.innerWidth;
-    H = canvas.height = window.innerHeight;
+    dpr = window.devicePixelRatio || 1;
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     // Force repaint on iOS to fill address-bar space
-    document.body.style.height = window.innerHeight + 'px';
+    document.body.style.height = H + 'px';
   }
   resize();
   window.addEventListener('resize', resize);
